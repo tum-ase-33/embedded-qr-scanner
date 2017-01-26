@@ -1,0 +1,129 @@
+import subprocess
+from PIL import Image
+import zbarlight
+import urllib.request
+import pifacecad
+import os
+import signal
+import datetime
+
+from api import Api
+from scan_qr_code import QRCodeScanner
+
+print("Script started");
+
+codes_Tab = []
+isPresentation = 0
+
+
+# you can ignore these three lines of code
+# they are needed so that you can end the
+# program by pressing Ctrl+C
+
+def signal_handler(signal, frame):
+    os._exit(0)
+
+
+signal.signal(signal.SIGINT, signal_handler)
+
+
+def internet_on():
+    try:
+        urllib.request.urlopen('http://www.google.com', timeout=1)
+        return True
+    except:
+        return False
+
+
+cad = pifacecad.PiFaceCAD()
+listener = pifacecad.SwitchEventListener(chip=cad)
+
+
+##def takePictureAndUpdate():
+
+def takePictureAndUpdate(event):
+    global isPresentation
+    isPresentation = cad.switches[1].value
+    print(isPresentation)
+
+    # subprocess.call("fswebcam --no-banner -r 290x290 test1.jpg", shell=True)
+
+    file_path = './test1.jpg'
+    with open(file_path, 'rb') as image_file:
+        image = Image.open(image_file)
+        image.load()
+    codes = zbarlight.scan_codes('qrcode', image)
+    print ('QR codes: %s' % codes)
+
+    # matr nr, section, first name, last name, system time
+    # codes_str = "9876543211_5_AzertyUiop78920005454121"
+
+    codes_str = str(codes)
+
+    if codes_str != None:
+        codes_tab = codes_str.split('_')
+        print ('Matricule : ' + codes_tab[0] + ', Section : ' + codes_tab[1])
+        if internet_on():
+            response = urllib.request.urlopen('http://exercise2-ase.appspot.com/rest/student/validate/987654321/5/1')
+            charset = response.info().get_content_charset()
+            content = response.read().decode(charset)
+            print (content)
+    else:
+        now = datetime.datetime.now()
+        file_name = 'backup_file_' + str(now.day) + '_' + '/' + str(now.month) + '_' + str(now.year)
+        print ('Writing to backup file with name ', str(file_name))
+        with open(file_name, 'a+') as backup:
+
+                # matr numbe, section number, isPresented
+
+            backup.write(str(codes_tab[0]) + '_' + str(codes_tab[1])
+                         + '_' + str(isPresentation) + '\n')
+
+
+##def syncWithDB():
+
+def syncWithDB(event):
+    global codes_tab
+    if internet_on():
+        print ('Internet is on for synchronizing with web server.')
+
+        # read whole backup file
+
+        now = datetime.datetime.now()
+
+        file_name = 'backup_file_' + str(now.day) + '_' + str(now.month) + '_' + str(now.year)
+        print ('Opening file with name: ', str(file_name))
+        with open(file_name) as f:
+            content = f.readlines()
+
+        # you may also want to remove whitespace characters like `\n` at the end of each line
+
+        content = [x.strip('\n') for x in content]
+
+        successfulUpdates = 0
+
+        # iterate all students in file
+
+        for (i, val) in enumerate(content):
+            print (i, val)
+            codes_tab = val.split('_')
+
+            # for every student sync with db (do request for every student)
+            response = urllib.request.urlopen('http://exercise2-ase.appspot.com/rest/student/validate/'+ str(codes_tab[0]) + '/' + str(codes_tab[1]) + '/'+ str(isPresentation))
+            charset = response.info().get_content_charset()
+            content = response.read().decode(charset)
+
+            # this can be printed on LCD
+
+            if 'was updated' in content:
+                successfulUpdates = successfulUpdates + 1
+
+        print ('number of successful updates: ', successfulUpdates)
+    else:
+        print ('No connection')
+
+
+listener.register(0, pifacecad.IODIR_FALLING_EDGE, takePictureAndUpdate)
+listener.register(4, pifacecad.IODIR_FALLING_EDGE, syncWithDB)
+
+listener.activate()
