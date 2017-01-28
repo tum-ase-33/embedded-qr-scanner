@@ -1,2 +1,1 @@
-ApiConfig = { 'pi_token': '12345', 'token_url': 'http://google.de' }
-
+ApiConfig = { 'pi_token': 'TmSAEBKX3HDDtfkJQYaZUfdsSsdfetrdfSkgrLT8w6RVAhxpa6RDqX', 'token_url': 'https://tum-attendance-checker.appspot.com/user-lesson-tokens/:token/tag' }
