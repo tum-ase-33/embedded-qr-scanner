@@ -44,8 +44,10 @@ class Program:
 				if (was_successful):
 					self.display.change_display(self.mode, "Scanning successful", True)
 					self.previous_token = self.token
+					os.system("omxplayer sounds/accepted.mp3")
 				else:
 					self.display.change_display(self.mode, "Invalid QR code", False)
+					os.system("omxplayer sounds/denied.mp3")
 			except requests.ConnectionError:
 				print("No internet connection available.")
 				self.store.store(self.mode, self.token)
