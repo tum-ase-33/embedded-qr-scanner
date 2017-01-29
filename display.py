@@ -50,7 +50,8 @@ class Display:
 			self.lcd.backlight_off()
 
 		self.number_of_blinks += 1
-		self.timer.start()
+		if self.timer is not None:
+			self.timer.start()
 		
 	def _clear_screen(self):
 		self.lcd.clear()

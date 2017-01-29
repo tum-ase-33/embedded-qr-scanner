@@ -6,8 +6,9 @@ class QRCodeScanner:
 		print("zbarcam erfolgreich gestartet...")
 		while True:
 			qrcodetext=zbarcam.stdout.readline()
-			print(qrcodetext)
-			if qrcodetext!="":
+			if qrcodetext != "":
+				qrcodetext = qrcodetext.decode('ascii').replace('\n', '')
+				print("Got barcode: " + qrcodetext)
 				print("success")
 				break
 		os.killpg(zbarcam.pid, signal.SIGTERM)  # Prozess stoppen

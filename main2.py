@@ -1,3 +1,5 @@
 from program import Program
 
-program.start(True)
+debug = True
+program = Program(debug)
+program.start()

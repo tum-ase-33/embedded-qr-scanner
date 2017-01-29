@@ -1,6 +1,7 @@
 import zbarlight
 import pifacecad
 import threading
+import requests
 
 from api import Api
 from qrcode_scanner import QRCodeScanner
@@ -12,39 +13,39 @@ class Program:
 		self.scanner = QRCodeScanner()
 		self.api = Api()
 		self.cad = pifacecad.PiFaceCAD()
-		self.display = Display(cad.lcd)
+		self.display = Display(self.cad.lcd)
 		self.previous_token = ""
 		
 	def start(self):
-		self.listener = pifacecad.SwitchEventListener(chip=cad)
+		self.listener = pifacecad.SwitchEventListener(chip=self.cad)
 		self.listener.register(0, pifacecad.IODIR_FALLING_EDGE, self._set_attendance_mode)
 		self.listener.register(1, pifacecad.IODIR_FALLING_EDGE, self._set_presentation_mode)
 		self.listener.register(3, pifacecad.IODIR_FALLING_EDGE, self._send_offline_stored_entries)
 
 		self.listener.activate()
 
-		self._setAttendanceMode(0)
+		self._set_attendance_mode(0)
 		self._scan()
 
 	def _scan(self):		
 		if self.debug:
 			self.token = "test"
 		else:
-			self.token = str(self.scanner.scan().decode("utf-8"))
+			self.token = str(self.scanner.scan())
 		
 		if (self.token is not None and self.token != '' and self.previous_token != self.token):
 			try:
 				if (self.mode == "attendance"):
-					was_successful = self.api.set_attendance(self.token)
+					was_successful = self.api.set_attendance(self.token, None)
 				else:
-					was_successful = self.api.set_presentation(self.token)
-				was_successful = debug or was_successful
+					was_successful = self.api.set_presentation(self.token, None)
+				was_successful = self.debug or was_successful
 				
 				if (was_successful):
 					self.display.change_display(self.mode, "Scanning successful", True)
 					self.previous_token = self.token
 				else:
-					self.display.change_display(currentMode, "Invalid QR code", False)
+					self.display.change_display(self.mode, "Invalid QR code", False)
 			except requests.ConnectionError:
 				print("No internet connection available.")
 				self.store.store(self.mode, self.token)
