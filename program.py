@@ -2,6 +2,7 @@ import zbarlight
 import pifacecad
 import threading
 import requests
+import os
 
 from api import Api
 from qrcode_scanner import QRCodeScanner
